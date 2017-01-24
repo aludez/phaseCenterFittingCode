@@ -50,10 +50,10 @@ void fitPhaseCenters()
 
 	fillArrays(eventNumberIndex, thetaWaveIndex, phiWaveIndex, antIndex1, antIndex2, maxCorrTimeIndex, adjacent, polIndex);
 	
-	TMinuit * myMinZ = new TMinuit(3*MAX_ANTENNAS);
-	//myMinZ->SetPrintLevel(-1);
-	//myMinPhi->SetObjectFit(fitObject);
-	myMinZ->SetFCN(fitFCN);
+	TMinuit * myMin = new TMinuit(3*MAX_ANTENNAS);
+	//myMin->SetPrintLevel(-1);
+	//myMin->SetObjectFit(fitObject);
+	myMin->SetFCN(fitFCN);
 
 	Double_t deltaR[MAX_ANTENNAS], deltaRErr[MAX_ANTENNAS];
 	Double_t deltaZ[MAX_ANTENNAS], deltaZErr[MAX_ANTENNAS];
@@ -67,14 +67,14 @@ void fitPhaseCenters()
 	
 		char name[30];
 		sprintf(name, "r%d", j);
-		myMinZ->DefineParameter(j, name, deltaR[j], stepSize, -.15, .15);
+		myMin->DefineParameter(j, name, deltaR[j], stepSize, -.15, .15);
 		sprintf(name, "z%d", j);
-		myMinZ->DefineParameter(j+MAX_ANTENNAS, name, deltaZ[j], stepSize, -.15,.15);
+		myMin->DefineParameter(j+MAX_ANTENNAS,name, deltaZ[j], stepSize, -.15,.15);
 		sprintf(name, "phi%d", j);
-		myMinZ->DefineParameter(j+MAX_ANTENNAS*2, name, deltaPhi[j], stepSize, -.02, .02);
+		myMin->DefineParameter(j+MAX_ANTENNAS*2, name, deltaPhi[j], stepSize, -.02, .02);
 	}
 	
-	myMinZ->Migrad();
+	myMin->Migrad();
 
 	std::time_t now = std::time(NULL);
 	std::tm * ptm = std::localtime(&now);
@@ -84,13 +84,13 @@ void fitPhaseCenters()
 	ofstream newfile(Form("TEST/phaseCenterNumbers_WAIS_HPOL_%s.txt",timeBuffer));
 	for(int j = 0; j < MAX_ANTENNAS; j++)
 	{
-		myMinZ->GetParameter(j, deltaR[j], deltaRErr[j]);
+		myMin->GetParameter(j, deltaR[j], deltaRErr[j]);
 		std::cout << " deltaR[" << j << "] = " << deltaR[j] << " +/- " << deltaRErr[j] << std::endl; 
 
-		myMinZ->GetParameter(j+MAX_ANTENNAS, deltaZ[j], deltaZErr[j]);
+		myMin->GetParameter(j+MAX_ANTENNAS, deltaZ[j], deltaZErr[j]);
 		std::cout << " deltaZ[" << j << "] = " << deltaZ[j] << " +/- " << deltaZErr[j] << std::endl;
 
-		myMinZ->GetParameter(j+MAX_ANTENNAS*2, deltaPhi[j], deltaPhiErr[j]);
+		myMin->GetParameter(j+MAX_ANTENNAS*2, deltaPhi[j], deltaPhiErr[j]);
 		std::cout << " deltaPhi[" << j << "] = " << deltaPhi[j] << " +/- " << deltaPhiErr[j] << std::endl; 
 
 		newfile << j << "	" << deltaR[j] << "	" << deltaZ[j] << "	" << deltaPhi[j] << std::endl;
@@ -124,9 +124,9 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 	
 	for (int run = 118; run < 155; run++)
 	{
-		sprintf(patName, "/home/abl/runs/root/runs/run%d/gpsEvent%d.root",run,run);
-		sprintf(headName, "/home/abl/runs/root/runs/run%d/headFile%d.root",run,run);
-		sprintf(corrName, "/home/abl/anita/phaseCenters/corrTrees/run%dCorrTree.root",run);
+		sprintf(patName,  "/project/kicp/avieregg/anitaIV/telem1617-south/root/run%d/gpsEvent%d.root",run,run);
+		sprintf(headName, "/project/kicp/avieregg/anitaIV/telem1617-south/root/run%d/headFile%d.root",run,run);
+		sprintf(corrName, "corrTrees/run%dCorrTree.root",run);
 		headChain->Add(headName);	
 		gpsChain->Add(patName);
 		corrChain->Add(corrName);
@@ -136,7 +136,6 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 	corrChain->SetBranchAddress("corr", &corr);
 	corrChain->SetBranchAddress("pol", &pol);
 	headChain->SetBranchAddress("header", &header);
-//	TTreeIndex *ind = new TTreeIndex(headChain
 	headChain->BuildIndex("eventNumber");
 	TTreeIndex *ind = (TTreeIndex*) headChain->GetTreeIndex();
 
@@ -172,8 +171,8 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 
 		for (int corrInd=0; corrInd < NUM_CORRELATIONS_ANITA3; corrInd++)
 		{
-			//this line ensures only close corrrelations are considered
-			if (corrInd > 11 && corrInd!=37 && corrInd!=38 && corrInd!=39) continue;
+			//this line ensures only close correlations are considered
+			if (corrInd > 11 && corrInd!=37 && corrInd!=38 && corrInd!=39 && corrInd!=49 && corrInd!=50 && corrInd!=51) continue;
 
 			maxCorrTime = corr->maxCorTimes[corrInd];
 			ant1 = corr->firstAnt[corrInd];
@@ -334,7 +333,7 @@ double fitObject(double *par, double *eventNumberIndex, double *thetaWaveIndex, 
 	//printf("meanA = %g, meanV = %g\n", sumMeanAdj, sumMeanVert);
 
 	//return (sumMeanAdj + sumRMSAdj + sumGradAdj + sumMeanVert + sumRMSVert + sumGradVert);
-	return (sumMeanAdj + sumMeanVert);
+	return (sumRMSAdj + sumRMSVert);
 }
 
 double findSlope(double **x, double **y, int *count)

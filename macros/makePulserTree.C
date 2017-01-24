@@ -63,7 +63,7 @@ void makeCorrelationRunTree(int run, const char *outDir)
 	TChain *adu5Chain = new TChain("adu5PatTree");
 	TChain *headChain = new TChain("headTree");
 
-	TString datadir = "/home/abl/runs/root/runs/";
+	TString datadir = "/project/kicp/avieregg/anitaIV/telem1617-south/root/";
 	TString runNum = TString::Itoa(run,10);
 	TString evName = datadir + "run" + runNum + "/eventFile" + runNum + ".root";
 	TString adu5Name = datadir + "run" + runNum + "/gpsEvent" + runNum + ".root";
