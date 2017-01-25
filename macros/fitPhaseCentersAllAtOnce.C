@@ -51,7 +51,7 @@ void fitPhaseCenters()
 	fillArrays(eventNumberIndex, thetaWaveIndex, phiWaveIndex, antIndex1, antIndex2, maxCorrTimeIndex, adjacent, polIndex);
 	
 	TMinuit * myMin = new TMinuit(3*MAX_ANTENNAS);
-	//myMin->SetPrintLevel(-1);
+	myMin->SetPrintLevel(-1);
 	//myMin->SetObjectFit(fitObject);
 	myMin->SetFCN(fitFCN);
 
@@ -161,7 +161,7 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 	for(Long64_t entry=0; entry<maxEntry; entry++)
 	{
 		corrChain->GetEntry(entry);
-		if (pol == 1) continue; //only look at H pol events for now
+		if (pol == 1) continue; //only look at V pol events for now
 		Long64_t gpsEntry = ind->GetEntryNumberWithIndex(corr->eventNumber, 0);
 		if(gpsEntry < 0) continue;
 		gpsChain->GetEntry(gpsEntry);
@@ -201,7 +201,7 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 				antIndex1[countIndex] = ant1;
 				antIndex2[countIndex] = ant2;
 				polIndex[countIndex] = pol;
-				if (corrInd > 5 && corrInd < 12) adjacent[countIndex]  = true;
+				if ((corrInd > 5 && corrInd < 12) || corrInd>48) adjacent[countIndex]  = true;
 				else
 				{
 					adjacent[countIndex] = false;
@@ -237,7 +237,7 @@ double fitObject(double *par, double *eventNumberIndex, double *thetaWaveIndex, 
 		deltaPhi[i] = par[i + 2*MAX_ANTENNAS];
 	}
 
-	//printf("deltaphi = %g\n", deltaPhi[0]);
+	//printf("deltaphi = %g, deltaR = %g, deltaZ = %g\n", deltaPhi[0], deltaR[0], deltaZ[0]);
 
 	double **adjacentAntDeltaT;
 	double **adjacentAntPhiWave;
@@ -288,7 +288,7 @@ double fitObject(double *par, double *eventNumberIndex, double *thetaWaveIndex, 
 
 		//printf("ant1 = %d, ant2 = %d, theta = %g, phi = %g, deltaR = %g, deltaZ = %g, deltaPhi = %g\n", ant1, ant2, thetaWave, phiWave, deltaR[ant1], deltaZ[ant1], deltaPhi[ant1]);
 		deltaTExpected = getDeltaTExpected(ant1, ant2, thetaWave, phiWave, deltaR, deltaZ, deltaPhi);
-		//printf("deltaT = %g\n", deltaTExpected);
+		//printf("deltaT = %g\n", maxCorrTime - deltaTExpected);
 		if(adjacent[entry])
 		{
 			adjacentAntDeltaT[ant1][countAdjacent[ant1]] = maxCorrTime - deltaTExpected;
@@ -331,8 +331,11 @@ double fitObject(double *par, double *eventNumberIndex, double *thetaWaveIndex, 
 	delete [] verticalAntPhiWave;
 
 	//printf("meanA = %g, meanV = %g\n", sumMeanAdj, sumMeanVert);
+	//printf("rmsA = %g, rmsV = %g\n", sumRMSAdj, sumRMSVert);
+	//printf("gradA = %g, gradV = %g\n", sumGradAdj, sumGradVert);
 
 	//return (sumMeanAdj + sumRMSAdj + sumGradAdj + sumMeanVert + sumRMSVert + sumGradVert);
+	//return (sumMeanAdj + sumRMSAdj + sumMeanVert + sumRMSVert);
 	return (sumRMSAdj + sumRMSVert);
 }
 
@@ -363,6 +366,7 @@ double findSlope(double **x, double **y, int *count)
 			sumXY += thisX*y[ant][i];
 			sumXX += thisX*thisX;
 		}
+		if (count[ant] == 0) continue;
 		slope = (sumX*sumY - count[ant]*sumXY) / (sumX*sumX - count[ant]*sumXX);
 		val += slope * slope;
 	}
@@ -377,8 +381,8 @@ double getMean(double **x, int *count)
 	{
 		mean = 0;
 		for (int i = 0; i < count[ant]; i++) mean += x[ant][i];
+		if (count[ant] == 0) continue;
 		sumMean += mean*mean / (count[ant]*count[ant]);
-		if (count[ant] == 0) sumMean = 0;
 	}
 	return sumMean;
 }
@@ -391,8 +395,8 @@ double getRMS(double **x, int *count)
 	{
 		rms = 0;
 		for (int i = 0; i < count[ant]; i++) rms += x[ant][i]*x[ant][i];
+		if (count[ant] == 0) continue;
 		sumRMS += rms / count[ant];
-		if (count[ant] == 0) sumRMS = 0;
 	}
 	return sumRMS;
 }
