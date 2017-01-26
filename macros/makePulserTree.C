@@ -130,6 +130,7 @@ void makeCorrelationRunTree(int run, const char *outDir)
 		//{
 		ttnsExpected = usefulPat->getWaisDivideTriggerTimeNs();
 		ttnsDelta = Int_t(ttns) - Int_t(ttnsExpected);
+		double ttnsDeltaH = ttnsDelta + 10e3;
 		//}
 		//only doing WAIS for now
 		/*
@@ -140,7 +141,7 @@ void makeCorrelationRunTree(int run, const char *outDir)
 		}
 		*/
 
-		if(TMath::Abs(ttnsDelta) > cutTimeNs) continue;
+		if((TMath::Abs(ttnsDelta) > cutTimeNs) && (TMath::Abs(ttnsDeltaH > cutTimeNs))) continue;
 		usefulPat->getThetaAndPhiWaveWaisDivide(thetaWave, phiWave);
 //want to add a pointing cut but havent gotten it to work
 /*			
@@ -180,7 +181,7 @@ void makeCorrelationRunTree(int run, const char *outDir)
 
 void doAll()
 {
-	for (int i = 118; i < 155; i++) 
+	for (int i = 118; i < 164; i++) 
 	{
 		makeCorrelationRunTree(i);
 		printf("%d done\n", i);
