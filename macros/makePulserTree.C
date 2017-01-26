@@ -115,16 +115,6 @@ void makeCorrelationRunTree(int run, const char *outDir)
 		adu5Chain->GetEntry(entryIndex);
 
 		usefulPat = new UsefulAdu5Pat(pat);
-		if (header->l3TrigPattern!=0)
-		{
-			pol=AnitaPol::kVertical;
-			isHoriz = 0;
-		}
-		if (header->l3TrigPatternH!=0)
-		{
-			pol=AnitaPol::kHorizontal;
-			isHoriz = 1;
-		}	
 		ttns = header->triggerTimeNs;
 		//if (!isLDB)
 		//{
@@ -142,6 +132,10 @@ void makeCorrelationRunTree(int run, const char *outDir)
 		*/
 
 		if((TMath::Abs(ttnsDelta) > cutTimeNs) && (TMath::Abs(ttnsDeltaH > cutTimeNs))) continue;
+		
+		if((TMath::Abs(ttnsDelta) < cutTimeNs)) isHoriz = 0; //should be V pulse
+		if((TMath::Abs(ttnsDeltaH) < cutTimeNs)) isHoriz = 1; //should be H pulse
+		
 		usefulPat->getThetaAndPhiWaveWaisDivide(thetaWave, phiWave);
 //want to add a pointing cut but havent gotten it to work
 /*			
