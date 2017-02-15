@@ -163,8 +163,8 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 	
 	for (int run = 118; run < 164; run++)
 	{
-		sprintf(patName,  "/project/kicp/avieregg/anitaIV/telem1617-south/root/run%d/gpsEvent%d.root",run,run);
-		sprintf(headName, "/project/kicp/avieregg/anitaIV/telem1617-south/root/run%d/headFile%d.root",run,run);
+		sprintf(patName,  "/project/kicp/avieregg/anitaIV/flight1617/root/run%d/gpsFile%d.root",run,run);
+		sprintf(headName, "/project/kicp/avieregg/anitaIV/flight1617/root/run%d/headFile%d.root",run,run);
 		sprintf(corrName, "corrTrees/run%dCorrTree.root",run);
 		headChain->Add(headName);	
 		gpsChain->Add(patName);
@@ -200,7 +200,7 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 	for(Long64_t entry=0; entry<maxEntry; entry++)
 	{
 		corrChain->GetEntry(entry);
-		if (pol == 1) continue; //V == 0 H == 1
+		if (pol == 0) continue; //V == 0 H == 1
 		Long64_t gpsEntry = ind->GetEntryNumberWithIndex(corr->eventNumber, 0);
 		if(gpsEntry < 0) continue;
 		gpsChain->GetEntry(gpsEntry);
@@ -211,7 +211,7 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 		for (int corrInd=0; corrInd < NUM_CORRELATIONS_ANITA3; corrInd++)
 		{
 			//this line ensures only close correlations are considered
-			if (corrInd > 11 && corrInd!=37 && corrInd!=38 && corrInd!=39 && corrInd!=49 && corrInd!=50 && corrInd!=51) continue;
+			if (corrInd > 19 && corrInd!=37 && corrInd!=38 && corrInd!=39 && corrInd!=49 && corrInd!=50 && corrInd!=51) continue;
 
 			maxCorrTime = corr->maxCorTimes[corrInd];
 			ant1 = corr->firstAnt[corrInd];

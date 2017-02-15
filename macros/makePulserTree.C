@@ -30,9 +30,9 @@
 #include "Analyzer.h"
 #include "AnalysisConfig.h"
 
-void makeCorrelationRunTree(int run, const char *outDir="corrTrees/");
+void makePulserTree(int run, const char *outDir="corrTrees/");
 
-void makeCorrelationRunTree(int run, const char *outDir)
+void makePulserTree(int run, const char *outDir)
 {
 	AnitaGeomTool * agt = AnitaGeomTool::Instance();
 	agt->useKurtAnita3Numbers(1);
@@ -63,7 +63,7 @@ void makeCorrelationRunTree(int run, const char *outDir)
 	TChain *adu5Chain = new TChain("adu5PatTree");
 	TChain *headChain = new TChain("headTree");
 
-	TString datadir = "/project/kicp/avieregg/anitaIV/telem1617-south/root/";
+	TString datadir = "/project/kicp/avieregg/anitaIV/flight1617/root/";
 	TString runNum = TString::Itoa(run,10);
 	TString evName = datadir + "run" + runNum + "/eventFile" + runNum + ".root";
 	TString adu5Name = datadir + "run" + runNum + "/gpsEvent" + runNum + ".root";
@@ -177,7 +177,7 @@ void doAll()
 {
 	for (int i = 118; i < 164; i++) 
 	{
-		makeCorrelationRunTree(i);
+		makePulserTree(i);
 		printf("%d done\n", i);
 	}
 }
