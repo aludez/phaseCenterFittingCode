@@ -15,9 +15,9 @@
 
 #define MAX_ANTENNAS 48
 
-void fillArrays(double *eventNumberIndex, double *thetaWaveIndex, double *phiWaveIndex, int *antIndex1, int *antIndex2,  double *maxCorrTimeIndex, bool *adjacent, int *polIndex, int* centerIndex);
+void fillArrays(double *eventNumberIndex, double *thetaWaveIndex, double *phiWaveIndex, int *antIndex1, int *antIndex2,  double *maxCorrTimeIndex, bool *adjacent, int *polIndex);
 
-double fitObject(double *par, double *eventNumberIndex, double *thetaWaveIndex, double *phiWaveIndex, int *antIndex1, int *antIndex2, double *maxCorrTimeIndex, bool *adjacent, int *polIndex, int *centerIndex);
+double fitObject(double *par, double *eventNumberIndex, double *thetaWaveIndex, double *phiWaveIndex, int *antIndex1, int *antIndex2, double *maxCorrTimeIndex, bool *adjacent, int *polIndex);
 
 double findSlope(double **x, double **y, int *count);
 double getMean(double **x, int *count);
@@ -28,7 +28,6 @@ const int arrayMax = 2000000;
 double eventNumberIndex[arrayMax];
 double thetaWaveIndex[arrayMax];
 double phiWaveIndex[arrayMax];
-int centerIndex[arrayMax];
 int antIndex1[arrayMax];
 int antIndex2[arrayMax];
 double maxCorrTimeIndex[arrayMax];
@@ -49,103 +48,68 @@ void fitPhaseCenters()
 	AnitaGeomTool *agt = AnitaGeomTool::Instance();
 	agt->useKurtAnita3Numbers(1);
 
-	fillArrays(eventNumberIndex, thetaWaveIndex, phiWaveIndex, antIndex1, antIndex2, maxCorrTimeIndex, adjacent, polIndex, centerIndex);
+	fillArrays(eventNumberIndex, thetaWaveIndex, phiWaveIndex, antIndex1, antIndex2, maxCorrTimeIndex, adjacent, polIndex);
 	
-	TMinuit * myMin[16];
+	TMinuit * myMin = new TMinuit(4*MAX_ANTENNAS);
+	myMin->SetPrintLevel(-1);
+	//myMin->SetObjectFit(fitObject);
+	myMin->SetFCN(fitFCN);
+
 	Double_t deltaR[MAX_ANTENNAS], deltaRErr[MAX_ANTENNAS];
 	Double_t deltaZ[MAX_ANTENNAS], deltaZErr[MAX_ANTENNAS];
 	Double_t deltaPhi[MAX_ANTENNAS], deltaPhiErr[MAX_ANTENNAS];
+	Double_t deltaCableDelays[MAX_ANTENNAS], deltaCableDelaysErr[MAX_ANTENNAS];
 
-	for(int centAnt = 0; centAnt < 16; centAnt++)
+	for(int j = 0; j < MAX_ANTENNAS; j++)
 	{
-		myMin[centAnt] = new TMinuit(3*MAX_ANTENNAS + 1);
-		myMin[centAnt]->SetPrintLevel(-1);
-		//myMin[centAnt]->SetObjectFit(fitObject);
-		myMin[centAnt]->SetFCN(fitFCN);
+		deltaR[j] = 0.;
+		deltaZ[j] = 0.;
+		deltaPhi[j] = 0.;
+		deltaCableDelays[j] = 0.;
 	
-		for(int j = 0; j < MAX_ANTENNAS; j++)
-		{
-			deltaR[j] = 0.;
-			deltaZ[j] = 0.;
-			deltaPhi[j] = 0.;
-	
-			char name[30];
-			sprintf(name, "r%d", j);
-			myMin[centAnt]->DefineParameter(j, name, deltaR[j], stepSize, -.15, .15);
-			sprintf(name, "z%d", j);
-			myMin[centAnt]->DefineParameter(j+MAX_ANTENNAS,name, deltaZ[j], stepSize, -.15,.15);
-			sprintf(name, "phi%d", j);
-			myMin[centAnt]->DefineParameter(j+MAX_ANTENNAS*2, name, deltaPhi[j], stepSize, -.02, .02);
-		}
-		
-		myMin[centAnt]->DefineParameter(3*MAX_ANTENNAS,"centerAnt",centAnt, stepSize, -1,1);
-		myMin[centAnt]->FixParameter(3*MAX_ANTENNAS);
-		myMin[centAnt]->Migrad();
+		char name[30];
+		sprintf(name, "r%d", j);
+		myMin->DefineParameter(j, name, deltaR[j], stepSize, -.15, .15);
+		sprintf(name, "z%d", j);
+		myMin->DefineParameter(j+MAX_ANTENNAS,name, deltaZ[j], stepSize, -.15,.15);
+		sprintf(name, "phi%d", j);
+		myMin->DefineParameter(j+MAX_ANTENNAS*2, name, deltaPhi[j], stepSize, -.02, .02);
+		sprintf(name, "cable%d", j);
+		myMin->DefineParameter(j+MAX_ANTENNAS*3, name, deltaCableDelays[j], stepSize, -.5, .5);
 	}
-	
+
+	myMin->FixParameter(MAX_ANTENNAS*3); //fix t0
+	for (int j = 0; j < MAX_ANTENNAS; j++)
+	{
+		myMin->FixParameter(j);
+		myMin->FixParameter(j+MAX_ANTENNAS);
+		myMin->FixParameter(j+MAX_ANTENNAS*2);
+	}
+
+	myMin->Migrad();
+
 	std::time_t now = std::time(NULL);
 	std::tm * ptm = std::localtime(&now);
 	char timeBuffer[32];
 	std::strftime(timeBuffer, 32, "%Y_%m_%d_time_%H_%M_%S", ptm);
 
-	ofstream newfile(Form("TEST/phaseCenterNumbers_WAIS_%s.txt",timeBuffer));
-	
-	Double_t dR = 0;
-	Double_t dRErr = 0;
-	Double_t dZ = 0;
-	Double_t dZErr = 0;
-	Double_t dPhi = 0;
-	Double_t dPhiErr = 0;
-	
-	for (int j = 0; j < MAX_ANTENNAS; j++)
+	ofstream newfile(Form("TEST/deltaCableDelayNumbers_WAIS_HPOL_%s.txt",timeBuffer));
+	for(int j = 0; j < MAX_ANTENNAS; j++)
 	{
-		deltaR[j] = 0.;
-		deltaZ[j] = 0.;
-		deltaPhi[j] = 0.;
+		myMin->GetParameter(j+MAX_ANTENNAS*3, deltaCableDelays[j], deltaCableDelaysErr[j]);
+		std::cout << " deltaCableDelays[" << j << "] = " << deltaCableDelays[j] << " +/- " << deltaCableDelaysErr[j] << std::endl; 
 	}
-	
-	for(int centAnt = 0; centAnt < 16; centAnt++)
-	{
-		std::cout << "Phi Sector " << centAnt << std::endl;
-		for(int j = 0; j < MAX_ANTENNAS; j++)
-		{
-			
-			myMin[centAnt]->GetParameter(j, dR, dRErr);
-			deltaR[j] += dR/3;
-			std::cout << " deltaR[" << j << "] = " << dR << " +/- " << dRErr << std::endl; 
-
-			myMin[centAnt]->GetParameter(j+MAX_ANTENNAS, dZ, dZErr);
-			deltaZ[j] += dZ/3;
-			std::cout << " deltaZ[" << j << "] = " << dZ << " +/- " << dZErr << std::endl;
-
-			myMin[centAnt]->GetParameter(j+MAX_ANTENNAS*2, dPhi, dPhiErr);
-			deltaPhi[j] += dPhi/3;
-			std::cout << " deltaPhi[" << j << "] = " << dPhi << " +/- " << dPhiErr << std::endl; 
-
-			newfile << j << "	" << dR << "	" << dZ << "	" << dPhi << std::endl;
-
-		}
-	}
-
-	newfile << "Mean value of all fits" << std::endl;
-	
-	for (int j = 0; j < MAX_ANTENNAS; j++)
-	{
-		newfile << j << "	" << deltaR[j] << "	" << deltaZ[j] << "	" << deltaPhi[j] << std::endl;
-		printf("R = %g, Z = %g, phi = %g\n", deltaR[j], deltaZ[j], deltaPhi[j]);
-	}
-
 }
 
 
 void fitFCN(Int_t& npar, Double_t* gin, Double_t& f, Double_t* par, Int_t flag)
 {
-	double diffErr = fitObject(par, eventNumberIndex, thetaWaveIndex, phiWaveIndex, antIndex1, antIndex2, maxCorrTimeIndex, adjacent, polIndex, centerIndex);
+	double diffErr = fitObject(par, eventNumberIndex, thetaWaveIndex, phiWaveIndex, antIndex1, antIndex2, maxCorrTimeIndex, adjacent, polIndex);
 	f = diffErr;
 }
 
 
-void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWaveIndex, int* antIndex1, int* antIndex2,  double* maxCorrTimeIndex, bool* adjacent, int* polIndex, int* centerIndex)
+void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWaveIndex, int* antIndex1, int* antIndex2,  double* maxCorrTimeIndex, bool* adjacent, int* polIndex)
 {
 	char patName[FILENAME_MAX];
 	char corrName[FILENAME_MAX];
@@ -163,7 +127,7 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 	
 	for (int run = 118; run < 153; run++)
 	{
-		sprintf(patName,  "/project/kicp/avieregg/anitaIV/flight1617/root/run%d/gpsFile%d.root",run,run);
+		sprintf(patName,  "/project/kicp/avieregg/anitaIV/flight1617/root/run%d/gpsEvent%d.root",run,run);
 		sprintf(headName, "/project/kicp/avieregg/anitaIV/flight1617/root/run%d/headFile%d.root",run,run);
 		sprintf(corrName, "corrTrees/run%dCorrTree.root",run);
 		headChain->Add(headName);	
@@ -211,7 +175,7 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 		for (int corrInd=0; corrInd < NUM_CORRELATIONS_ANITA3; corrInd++)
 		{
 			//this line ensures only close correlations are considered
-			if (corrInd > 19 && corrInd!=37 && corrInd!=38 && corrInd!=39 && corrInd!=49 && corrInd!=50 && corrInd!=51) continue;
+			if (corrInd > 11 && corrInd!=37 && corrInd!=38 && corrInd!=39 && corrInd!=49 && corrInd!=50 && corrInd!=51) continue;
 
 			maxCorrTime = corr->maxCorTimes[corrInd];
 			ant1 = corr->firstAnt[corrInd];
@@ -237,7 +201,6 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 				phiWaveIndex[countIndex] = phiWave;
 				maxCorrTimeIndex[countIndex] = maxCorrTime;
 				eventNumberIndex[countIndex] = corr->eventNumber;
-				centerIndex[countIndex] = corr->centreAntenna;
 				antIndex1[countIndex] = ant1;
 				antIndex2[countIndex] = ant2;
 				polIndex[countIndex] = pol;
@@ -260,7 +223,7 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 	antIndex1[countIndex] = -999;
 }
 
-double fitObject(double *par, double *eventNumberIndex, double *thetaWaveIndex, double *phiWaveIndex, int *antIndex1, int *antIndex2, double *maxCorrTimeIndex, bool *adjacent, int *polIndex, int *centerIndex)
+double fitObject(double *par, double *eventNumberIndex, double *thetaWaveIndex, double *phiWaveIndex, int *antIndex1, int *antIndex2, double *maxCorrTimeIndex, bool *adjacent, int *polIndex)
 {
 	int arrayNum = 100000;
 	AnitaGeomTool *agt = AnitaGeomTool::Instance();
@@ -269,14 +232,17 @@ double fitObject(double *par, double *eventNumberIndex, double *thetaWaveIndex, 
 	Double_t deltaR[MAX_ANTENNAS] = {0};
 	Double_t deltaZ[MAX_ANTENNAS] = {0};
 	Double_t deltaPhi[MAX_ANTENNAS] = {0};
+	Double_t deltaCableDelays[MAX_ANTENNAS] = {0.};
+
 
 	for(int i = 0; i < MAX_ANTENNAS; i++)
 	{
 		deltaR[i] = par[i];
 		deltaZ[i] = par[i + MAX_ANTENNAS];
 		deltaPhi[i] = par[i + 2*MAX_ANTENNAS];
+		deltaCableDelays[i] = par[i + 3*MAX_ANTENNAS];
 	}
-	Double_t centerAnt = par[3*MAX_ANTENNAS];
+
 	//printf("deltaphi = %g, deltaR = %g, deltaZ = %g\n", deltaPhi[0], deltaR[0], deltaZ[0]);
 
 	double **adjacentAntDeltaT;
@@ -298,7 +264,17 @@ double fitObject(double *par, double *eventNumberIndex, double *thetaWaveIndex, 
 
 	Int_t countAdjacent[48] = {0};
 	Int_t countVertical[48] = {0};
+
+	//MAKE SURE WE'RE DOING RIGHT POL !!!!!!!!!
+	
 	AnitaPol::AnitaPol_t HPOL = AnitaPol::kHorizontal;
+	
+	double antPhi[MAX_ANTENNAS] = {0};
+
+	for (int ant = 0; ant < MAX_ANTENNAS; ant++)
+	{
+		antPhi[ant] = agt->getAntPhiPositionRelToAftFore(ant, HPOL);
+	}
 
 	Double_t additionalPhi = 22.5 * TMath::DegToRad();
 
@@ -313,11 +289,6 @@ double fitObject(double *par, double *eventNumberIndex, double *thetaWaveIndex, 
 	
 	while(antIndex1[entry]!=-999)
 	{
-		if (centerAnt != centerIndex[entry])
-		{
-			entry++;
-			continue;
-		}
 		thetaWave = thetaWaveIndex[entry];
 		phiWave = phiWaveIndex[entry];
 
@@ -326,7 +297,7 @@ double fitObject(double *par, double *eventNumberIndex, double *thetaWaveIndex, 
 		ant2 = antIndex2[entry];
 
 		//printf("ant1 = %d, ant2 = %d, theta = %g, phi = %g, deltaR = %g, deltaZ = %g, deltaPhi = %g\n", ant1, ant2, thetaWave, phiWave, deltaR[ant1], deltaZ[ant1], deltaPhi[ant1]);
-		deltaTExpected = getDeltaTExpected(ant1, ant2, thetaWave, phiWave, deltaR, deltaZ, deltaPhi);
+		deltaTExpected = getDeltaTExpected(ant1, ant2, thetaWave, phiWave, deltaR, deltaZ, deltaPhi) + deltaCableDelays[ant1] - deltaCableDelays[ant2];
 		//printf("deltaT = %g\n", maxCorrTime - deltaTExpected);
 		if(adjacent[entry])
 		{

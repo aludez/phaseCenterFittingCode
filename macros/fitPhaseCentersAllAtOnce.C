@@ -122,10 +122,10 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 	TChain * corrChain = new TChain("corrTree");
 	TChain * headChain = new TChain("headTree");
 	
-	for (int run = 118; run < 164; run++)
+	for (int run = 118; run < 153; run++)
 	{
-		sprintf(patName,  "/project/kicp/avieregg/anitaIV/telem1617-south/root/run%d/gpsEvent%d.root",run,run);
-		sprintf(headName, "/project/kicp/avieregg/anitaIV/telem1617-south/root/run%d/headFile%d.root",run,run);
+		sprintf(patName,  "/project/kicp/avieregg/anitaIV/flight1617/root/run%d/gpsEvent%d.root",run,run);
+		sprintf(headName, "/project/kicp/avieregg/anitaIV/flight1617/root/run%d/headFile%d.root",run,run);
 		sprintf(corrName, "corrTrees/run%dCorrTree.root",run);
 		headChain->Add(headName);	
 		gpsChain->Add(patName);

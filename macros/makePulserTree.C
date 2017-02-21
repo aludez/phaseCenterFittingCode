@@ -95,7 +95,8 @@ void makePulserTree(int run, const char *outDir)
 	Double_t ttnsExpected;
 	Double_t ttns;
 	int ant;
-	
+	Int_t adjust = -1000;
+
 	Double_t deltaT = 1./(2.6*40.);
 
 	headChain->BuildIndex("eventNumber");
@@ -114,12 +115,13 @@ void makePulserTree(int run, const char *outDir)
 		headChain->GetEntry(entryIndex);
 		adu5Chain->GetEntry(entryIndex);
 
+		if((header->trigType&1) == 0) continue;
 		usefulPat = new UsefulAdu5Pat(pat);
 		ttns = header->triggerTimeNs;
 		//if (!isLDB)
 		//{
 		ttnsExpected = usefulPat->getWaisDivideTriggerTimeNs();
-		ttnsDelta = Int_t(ttns) - Int_t(ttnsExpected);
+		ttnsDelta = Int_t(ttns) - Int_t(ttnsExpected) - adjust;
 		double ttnsDeltaH = ttnsDelta + 10e3;
 		//}
 		//only doing WAIS for now
@@ -131,7 +133,7 @@ void makePulserTree(int run, const char *outDir)
 		}
 		*/
 
-		if((TMath::Abs(ttnsDelta) > cutTimeNs) && (TMath::Abs(ttnsDeltaH > cutTimeNs))) continue;
+		if((TMath::Abs(ttnsDelta) > cutTimeNs) && (TMath::Abs(ttnsDeltaH) > cutTimeNs)) continue;
 		
 		if((TMath::Abs(ttnsDelta) < cutTimeNs)) isHoriz = 0; //should be V pulse
 		if((TMath::Abs(ttnsDeltaH) < cutTimeNs)) isHoriz = 1; //should be H pulse
