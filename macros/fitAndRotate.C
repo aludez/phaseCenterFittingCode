@@ -37,7 +37,7 @@ int polIndex[arrayMax];
 
 void fitFCN(Int_t& npar, Double_t* gin, Double_t& f, Double_t* par, Int_t flag);
 
-void fitPhaseCenters()
+void fitAndRotate()
 {
 	double stepSize = 0.0001;
 
@@ -111,15 +111,15 @@ void fitPhaseCenters()
 		{
 			
 			myMin[centAnt]->GetParameter(j, dR, dRErr);
-			deltaR[j] += dR/3;
+			deltaR[j] += dR/3.;
 			std::cout << " deltaR[" << j << "] = " << dR << " +/- " << dRErr << std::endl; 
 
 			myMin[centAnt]->GetParameter(j+MAX_ANTENNAS, dZ, dZErr);
-			deltaZ[j] += dZ/3;
+			deltaZ[j] += dZ/3.;
 			std::cout << " deltaZ[" << j << "] = " << dZ << " +/- " << dZErr << std::endl;
 
 			myMin[centAnt]->GetParameter(j+MAX_ANTENNAS*2, dPhi, dPhiErr);
-			deltaPhi[j] += dPhi/3;
+			deltaPhi[j] += dPhi/3.;
 			std::cout << " deltaPhi[" << j << "] = " << dPhi << " +/- " << dPhiErr << std::endl; 
 
 			newfile << j << "	" << dR << "	" << dZ << "	" << dPhi << std::endl;
@@ -161,7 +161,7 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 	TChain * corrChain = new TChain("corrTree");
 	TChain * headChain = new TChain("headTree");
 	
-	for (int run = 118; run < 153; run++)
+	for (int run = 120; run < 153; run++)
 	{
 		sprintf(patName,  "/project/kicp/avieregg/anitaIV/flight1617/root/run%d/gpsFile%d.root",run,run);
 		sprintf(headName, "/project/kicp/avieregg/anitaIV/flight1617/root/run%d/headFile%d.root",run,run);
@@ -195,7 +195,7 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 		antPhi[ant] = agt->getAntPhiPositionRelToAftFore(ant, HPOL);
 	}
 	Double_t additionalPhi = 22.5*TMath::DegToRad();
-	Double_t twoPi = 2*TMath::Pi();
+	Double_t twoPi = TMath::TwoPi();
 	
 	for(Long64_t entry=0; entry<maxEntry; entry++)
 	{

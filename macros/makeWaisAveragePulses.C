@@ -22,9 +22,6 @@ void makeAverageGraphs(TGraph* top, TGraph* mid, TGraph* bot, int center);
 
 void makeWaisAveragePulses(int centAnt)
 {
-	AnitaGeomTool *agt = AnitaGeomTool::Instance();
-	agt->useKurtAnita3Numbers(1);
-
 	TGraph* top = 0;
 	TGraph* mid = 0;
 	TGraph* bot = 0;
@@ -41,7 +38,7 @@ void makeAverageGraphs(TGraph* top, TGraph* mid, TGraph* bot, int center)
 	TChain* headChain = new TChain("headTree");
 	TChain* evChain = new TChain("eventTree");
 	WaveCalType::WaveCalType_t cal = WaveCalType::kDefault;
-	TString datadir = "/home/abl/anita/";
+	TString datadir = "/project/kicp/avieregg/anitaIV/flight1617/root/";
 	char corrName[FILENAME_MAX];
 	RawAnitaEvent* event = 0;
 	RawAnitaHeader* header = 0;
@@ -49,7 +46,7 @@ void makeAverageGraphs(TGraph* top, TGraph* mid, TGraph* bot, int center)
 	CorrelationSummaryAnita3 * corr = 0;
 	int pol = 0;
 
-	for (int run = 125; run < 126; run++)
+	for (int run = 120; run < 135; run++)
 	{
 		sprintf(corrName, "corrTrees/run%dCorrTree.root",run);
 		corrChain->Add(corrName);
@@ -58,44 +55,51 @@ void makeAverageGraphs(TGraph* top, TGraph* mid, TGraph* bot, int center)
 		headChain->Add(headname.Data());
 		TString evname = datadir + "run" + runNum + "/eventFile" + runNum +".root";
 		evChain->Add(evname.Data());
-		
-		corrChain->SetBranchAddress("corr", &corr);
-		corrChain->SetBranchAddress("pol", &pol);
-		evChain->SetBranchAddress("event", &event);
-		headChain->SetBranchAddress("header", &header);
-		
-		headChain->BuildIndex("eventNumber");
-		ind = (TTreeIndex*) headChain->GetTreeIndex();
 	}
+
+	corrChain->SetBranchAddress("corr", &corr);
+	corrChain->SetBranchAddress("pol", &pol);
+	evChain->SetBranchAddress("event", &event);
+	headChain->SetBranchAddress("header", &header);
+	
+	headChain->BuildIndex("eventNumber");
+	ind = (TTreeIndex*) headChain->GetTreeIndex();
 	printf("starting one %lld\n", headChain->GetEntries());
+	
 	for(int j = 0; j < corrChain->GetEntries(); j++)
 	{
 		corrChain->GetEntry(j);
 		if(corr->centreAntenna != center) continue;
-		if(pol == 0) continue;
+		if(pol == 1) continue;//0 is V, 1 is H
 		int entryIndex = ind->GetEntryNumberWithIndex(corr->eventNumber,0);
 		headChain->GetEntry(entryIndex);
 		evChain->GetEntry(entryIndex);
 		UsefulAnitaEvent uae(event, cal, header);	
-		TGraph* gtemptop = uae.getGraph(AnitaRing::kTopRing, center, AnitaPol::kHorizontal);
-		TGraph* gtempmid = uae.getGraph(AnitaRing::kMiddleRing, center, AnitaPol::kHorizontal);
-		TGraph* gtempbot = uae.getGraph(AnitaRing::kBottomRing, center, AnitaPol::kHorizontal);
+		
+		TGraph* gtemptop = uae.getGraph(AnitaRing::kTopRing, center, AnitaPol::kVertical);
+		TGraph* gtempmid = uae.getGraph(AnitaRing::kMiddleRing, center, AnitaPol::kVertical);
+		TGraph* gtempbot = uae.getGraph(AnitaRing::kBottomRing, center, AnitaPol::kVertical);
+		
 		if(i == 0)
 		{
 			tops[0] = FFTtools::getInterpolatedGraph(gtemptop, 1/(2.6*16));
 			mids[0] = FFTtools::getInterpolatedGraph(gtempmid, 1/(2.6*16));
 			bots[0] = FFTtools::getInterpolatedGraph(gtempbot, 1/(2.6*16));
+			
 			i++;
+			delete gtemptop; delete gtempmid; delete gtempbot;
 			continue;
 		}
+		
 		tops[1] = FFTtools::getInterpolatedGraph(gtemptop, 1/(2.6*16));
 		mids[1] = FFTtools::getInterpolatedGraph(gtempmid, 1/(2.6*16));
 		bots[1] = FFTtools::getInterpolatedGraph(gtempbot, 1/(2.6*16));
+		
 		gtemptop = FFTtools::correlateAndAverage(2, tops);
 		gtempmid = FFTtools::correlateAndAverage(2, mids);
 		gtempbot = FFTtools::correlateAndAverage(2, bots);
-	
 		delete tops[0]; delete mids[0]; delete bots[0]; 
+		delete tops[1]; delete mids[1]; delete bots[1]; 
 		
 		tops[0] = new TGraph(gtemptop->GetN(), gtemptop->GetX(), gtemptop->GetY());
 		mids[0] = new TGraph(gtempmid->GetN(), gtempmid->GetX(), gtempmid->GetY());
@@ -104,6 +108,7 @@ void makeAverageGraphs(TGraph* top, TGraph* mid, TGraph* bot, int center)
 		for (int k = 0 ; k < tops[0]->GetN(); k++) tops[0]->GetY()[k] *= 2;
 		for (int k = 0 ; k < mids[0]->GetN(); k++) mids[0]->GetY()[k] *= 2;
 		for (int k = 0 ; k < bots[0]->GetN(); k++) bots[0]->GetY()[k] *= 2;
+		
 		i++;
 		delete gtemptop; delete gtempmid; delete gtempbot;
 	}
@@ -121,14 +126,15 @@ void makeAverageGraphs(TGraph* top, TGraph* mid, TGraph* bot, int center)
 	mid->SetName(Form("mid%d", center));
 	bot->SetName(Form("bot%d", center));
 	
-	TFile f(Form("averageGraphs/waisAverage%d.root", center), "RECREATE");
+	TFile f(Form("averageGraphs/waisAverage%d_V.root", center), "RECREATE");
 	top->Write();
 	mid->Write();
 	bot->Write();
 	f.Close();
 	
-	delete tops[0]; delete tops[1];
-	delete mids[0]; delete mids[1];
-	delete bots[0]; delete bots[1];
+	delete tops[0]; 
+	delete mids[0]; 
+	delete bots[0]; 
 	delete top; delete mid; delete bot;
+	delete headChain; delete corrChain; delete evChain;
 }

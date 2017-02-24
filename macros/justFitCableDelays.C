@@ -36,7 +36,7 @@ int polIndex[arrayMax];
 
 void fitFCN(Int_t& npar, Double_t* gin, Double_t& f, Double_t* par, Int_t flag);
 
-void fitPhaseCenters()
+void justFitCableDelays()
 {
 	double stepSize = 0.0001;
 
@@ -93,7 +93,7 @@ void fitPhaseCenters()
 	char timeBuffer[32];
 	std::strftime(timeBuffer, 32, "%Y_%m_%d_time_%H_%M_%S", ptm);
 
-	ofstream newfile(Form("TEST/deltaCableDelayNumbers_WAIS_HPOL_%s.txt",timeBuffer));
+	ofstream newfile(Form("TEST/deltaCableDelays_WAIS_HPOL_%s.txt",timeBuffer));
 	for(int j = 0; j < MAX_ANTENNAS; j++)
 	{
 		myMin->GetParameter(j+MAX_ANTENNAS*3, deltaCableDelays[j], deltaCableDelaysErr[j]);
@@ -164,7 +164,7 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 	for(Long64_t entry=0; entry<maxEntry; entry++)
 	{
 		corrChain->GetEntry(entry);
-		if (pol == 0) continue; //V == 0 H == 1
+		if (pol == 1) continue; //V == 0 H == 1
 		Long64_t gpsEntry = ind->GetEntryNumberWithIndex(corr->eventNumber, 0);
 		if(gpsEntry < 0) continue;
 		gpsChain->GetEntry(gpsEntry);
@@ -181,7 +181,7 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 			ant1 = corr->firstAnt[corrInd];
 			ant2 = corr->secondAnt[corrInd];
 
-			deltaTExpected = usefulPat.getDeltaTExpected(ant1, ant2, AnitaLocations::LONGITUDE_WAIS, AnitaLocations::LATITUDE_WAIS, AnitaLocations::ALTITUDE_WAIS);
+			deltaTExpected = usefulPat.getDeltaTExpected(ant1, ant2, AnitaLocations::LONGITUDE_WAIS_A4, AnitaLocations::LATITUDE_WAIS_A4, AnitaLocations::ALTITUDE_WAIS_A4);
 
 			lower = antPhi[ant1] - additionalPhi;
 			upper = antPhi[ant2] + additionalPhi;
@@ -193,7 +193,7 @@ void fillArrays(double* eventNumberIndex, double* thetaWaveIndex, double* phiWav
 				if (phiWave<TMath::Pi()) lower -=twoPi;
 				else upper +=twoPi;
 			}
-
+			//printf("dt = %g\n", maxCorrTime - deltaTExpected);
 			if (phiWave > lower && phiWave < upper && (maxCorrTime - deltaTExpected) * (maxCorrTime - deltaTExpected) < 1)
 			{
 				//printf("delta t = %g\n", maxCorrTime - deltaTExpected);
@@ -268,12 +268,13 @@ double fitObject(double *par, double *eventNumberIndex, double *thetaWaveIndex, 
 	//MAKE SURE WE'RE DOING RIGHT POL !!!!!!!!!
 	
 	AnitaPol::AnitaPol_t HPOL = AnitaPol::kHorizontal;
+	AnitaPol::AnitaPol_t VPOL = AnitaPol::kVertical;
 	
 	double antPhi[MAX_ANTENNAS] = {0};
 
 	for (int ant = 0; ant < MAX_ANTENNAS; ant++)
 	{
-		antPhi[ant] = agt->getAntPhiPositionRelToAftFore(ant, HPOL);
+		antPhi[ant] = agt->getAntPhiPositionRelToAftFore(ant, VPOL);
 	}
 
 	Double_t additionalPhi = 22.5 * TMath::DegToRad();

@@ -138,7 +138,7 @@ void makePulserTree(int run, const char *outDir)
 		if((TMath::Abs(ttnsDelta) < cutTimeNs)) isHoriz = 0; //should be V pulse
 		if((TMath::Abs(ttnsDeltaH) < cutTimeNs)) isHoriz = 1; //should be H pulse
 		
-		usefulPat->getThetaAndPhiWaveWaisDivide(thetaWave, phiWave);
+		usefulPat->getThetaAndPhiWave(AnitaLocations::LONGITUDE_WAIS_A4, AnitaLocations::LATITUDE_WAIS_A4, AnitaLocations::ALTITUDE_WAIS_A4, thetaWave, phiWave);
 //want to add a pointing cut but havent gotten it to work
 /*			
 		AnitaEventSummary * aes = new AnitaEventSummary(header, usefulPat);
